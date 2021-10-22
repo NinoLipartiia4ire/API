@@ -1,15 +1,37 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::near_bindgen;
+use near_sdk::{env, near_bindgen};
+use std::fmt;
+
+extern crate base64;
+
+use base64::{encode, decode};
+
 
 #[near_bindgen]
 #[derive(Default, BorshDeserialize, BorshSerialize)]
-pub struct Contract {
-    // SETUP CONTRACT STATE
+pub struct Call {
+    pub app_id: String,
+    pub action_id: String,
+    pub user: String,
 }
 
 #[near_bindgen]
-impl Contract {
-    // ADD CONTRACT METHODS HERE
+impl Call {
+    pub fn generate_string(&self) -> String {
+    	format!("{}_{}_{}", encode(self.app_id.clone()), encode(self.action_id.clone()), encode(self.user.clone()))	
+    }
+
+    pub fn blockchain_analytics(encoded: String) -> Self {
+	let call_encoded: Vec<&str> = encoded.split('_').collect();
+	let app_id_encoded = call_encoded[0];
+	let app_id = encode(decode(app_id_encoded).unwrap());
+	let action_id_encoded = call_encoded[1];
+        let action_id = encode(decode(action_id_encoded).unwrap());
+	let user_encoded = call_encoded[2];
+        let user = encode(decode(user_encoded).unwrap());
+	env::log_str("this is a log");
+	Call {app_id, action_id, user}	
+    }
 }
 
 /*
@@ -34,5 +56,15 @@ mod tests {
         builder
     }
 
-    // TESTS HERE
+    #[test]
+    fn encoding() {
+	let app_id = "appid".to_string();
+	let action_id =  "actionid".to_string();
+	let user = "user123".to_string();
+	let api_call = Call{app_id, action_id, user};
+	let call_decoded = Call::blockchain_analytics(api_call.generate_string());
+	assert_eq!(api_call.app_id, call_decoded.app_id);
+	assert_eq!(api_call.action_id, call_decoded.action_id);
+	assert_eq!(api_call.user, call_decoded.user);
+    }
 }
